@@ -1,0 +1,50 @@
+{
+  "manifest_version": 3,
+  "name": "Query2Card Logger",
+  "version": "0.1.0",
+  "description": "Log search queries and AI prompts to the local Query2Card backend.",
+  "permissions": ["tabs", "storage"],
+  "host_permissions": [
+    "http://127.0.0.1:22333/*",
+    "https://www.google.com/*",
+    "https://www.bing.com/*",
+    "https://www.baidu.com/*",
+    "https://gemini.google.com/*",
+    "https://bard.google.com/*",
+    "https://chatgpt.com/*",
+    "https://chat.openai.com/*",
+    "https://claude.ai/*",
+    "https://kimi.com/*",
+    "https://www.kimi.com/*",
+    "https://kimi.moonshot.cn/*",
+    "https://chat.deepseek.com/*",
+    "https://www.perplexity.ai/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.google.com/search*",
+        "https://www.bing.com/search*",
+        "https://www.baidu.com/s*",
+        "https://gemini.google.com/*",
+        "https://bard.google.com/*",
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*",
+        "https://claude.ai/*",
+        "https://kimi.com/*",
+        "https://www.kimi.com/*",
+        "https://kimi.moonshot.cn/*",
+        "https://chat.deepseek.com/*",
+        "https://www.perplexity.ai/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "Query2Card"
+  }
+}

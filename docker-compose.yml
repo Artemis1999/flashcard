@@ -1,0 +1,9 @@
+services:
+  query2card:
+    build: .
+    container_name: query2card
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:22333:22333"
+    volumes:
+      - ./data:/data

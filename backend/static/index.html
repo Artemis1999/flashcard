@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>Query2Card 本地查询记录</title>
+  <style>
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Microsoft YaHei", sans-serif; margin: 24px; }
+    h1 { margin-bottom: 8px; }
+    .toolbar { margin: 16px 0; display: flex; gap: 8px; align-items: center; }
+    input[type="date"] { padding: 6px; }
+    button { padding: 6px 10px; cursor: pointer; }
+    table { border-collapse: collapse; width: 100%; font-size: 14px; }
+    th, td { border: 1px solid #ddd; padding: 8px; vertical-align: top; }
+    th { background: #f5f5f5; }
+    textarea { width: 100%; min-height: 72px; box-sizing: border-box; }
+    .question { font-weight: 600; }
+    .url { font-size: 12px; color: #666; word-break: break-all; }
+    .small { font-size: 12px; color: #666; }
+  </style>
+</head>
+<body>
+  <h1>Query2Card 本地查询记录</h1>
+  <div class="small">白天自动记录，晚上集中整理。</div>
+
+  <div class="toolbar">
+    <input type="date" id="day" />
+    <button onclick="loadLogs()">刷新</button>
+    <button onclick="exportCsv()">导出 CSV</button>
+    <span id="count"></span>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 150px;">时间/来源</th>
+        <th>问题/搜索词</th>
+        <th style="width: 34%;">答案</th>
+        <th style="width: 180px;">标签/操作</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+
+<script>
+const api = "http://127.0.0.1:22333";
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+document.getElementById("day").value = today();
+
+async function loadLogs() {
+  const day = document.getElementById("day").value;
+  const res = await fetch(`${api}/api/logs?day=${day}`);
+  const data = await res.json();
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = "";
+  document.getElementById("count").textContent = `共 ${data.items.length} 条`;
+
+  for (const item of data.items) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>
+        <div>${escapeHtml((item.created_at || "").replace("T", " "))}</div>
+        <div class="small">${escapeHtml(item.platform || "")}</div>
+      </td>
+      <td>
+        <div class="question">${escapeHtml(item.question || "")}</div>
+        <div class="url"><a href="${escapeAttr(item.url || "")}" target="_blank">${escapeHtml(item.title || item.url || "")}</a></div>
+      </td>
+      <td>
+        <textarea id="answer-${item.id}" placeholder="晚上整理时填写答案">${escapeHtml(item.answer || "")}</textarea>
+      </td>
+      <td>
+        <input id="tags-${item.id}" value="${escapeAttr(item.tags || "")}" placeholder="标签，用逗号分隔" />
+        <div style="margin-top:8px;">
+          <label><input type="checkbox" id="flash-${item.id}" ${item.is_flashcard ? "checked" : ""}> 转闪卡</label>
+        </div>
+        <div style="margin-top:8px;">
+          <button onclick="saveItem(${item.id})">保存</button>
+          <button onclick="deleteItem(${item.id})">删除</button>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+async function saveItem(id) {
+  const answer = document.getElementById(`answer-${id}`).value;
+  const tags = document.getElementById(`tags-${id}`).value;
+  const is_flashcard = document.getElementById(`flash-${id}`).checked ? 1 : 0;
+  await fetch(`${api}/api/logs/${id}`, {
+    method: "PUT",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({answer, tags, is_flashcard, is_reviewed: 1})
+  });
+  await loadLogs();
+}
+
+async function deleteItem(id) {
+  await fetch(`${api}/api/logs/${id}`, {method: "DELETE"});
+  await loadLogs();
+}
+
+function exportCsv() {
+  const day = document.getElementById("day").value;
+  window.open(`${api}/api/export.csv?day=${day}`, "_blank");
+}
+
+function escapeHtml(str) {
+  return String(str || "").replace(/[&<>"']/g, s => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+  }[s]));
+}
+
+function escapeAttr(str) {
+  return escapeHtml(str).replace(/`/g, "&#096;");
+}
+
+loadLogs();
+</script>
+</body>
+</html>
